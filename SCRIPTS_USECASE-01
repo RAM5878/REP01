@@ -1,0 +1,122 @@
+
+#SDK command to create a bucket.
+>gsutil mb gs://usecase-01_bucket
+======================================================================
+
+#SDK command to copy a file from local to cloud storage bucket.
+>gsutil cp F:\CDE\File_formAT\student_info.csv gs://usecase-01_bucket
+======================================================================
+
+#sql command for creating a stage dataset.
+CREATE SCHEMA
+  usecase01_stage
+=====================================================================
+
+#sql command for creating a history dataset.
+CREATE SCHEMA
+  usecase01_history
+======================================================================
+ 
+#sql command to create a stage table with columns from DIS and datatype is string.
+CREATE TABLE
+  usecase01_stage.studenttab_stg (student_id string,
+    student_name string,
+    student_class string,
+    student_age string,
+    student_location string);
+=======================================================================
+
+#sql command to create a history table with columns and datatypes from DIS.
+CREATE TABLE
+  usecase01_history.studenttab_his (student_id int64,
+    student_name string,
+    student_class int64,
+    student_age int64,
+    student_location string);
+============================================================================
+	
+#bq command to load information/data from CSV file in cloud storage bucket to table in big query dataset.
+>bq load --source_format=CSV --skip_leading_rows=1 usecase01_stage.studenttab_stg gs://usecase-01_bucket/student_info.csv	
+==========================================================================================================================
+
+#sql command to apply transformation and insert data from stage table into history table.
+INSERT INTO
+  `usecase-01.usecase01_history.studenttab_his`
+SELECT
+  CAST (student_id AS int64),
+  student_name,
+  CAST(student_class AS int64),
+  CAST(student_age AS int64),
+  student_location
+FROM
+  `usecase-01.usecase01_stage.studenttab_stg`;
+=================================================================================================
+  
+#sql command to create audit database
+CREATE SCHEMA
+  audit_usecase01
+============================================
+  
+#sql command to create audit stage table
+CREATE TABLE
+  usecase-01.audit_usecase01.studentaud_stg( 
+    datasetname string,
+    tablename string,
+    total_records int64,
+    audit_date timestamp,
+    audit_by string;
+==========================================================================================================
+
+
+#sql command to create audit history table
+
+CREATE TABLE
+  usecase-01.audit_usecase01.studentaud_his( datasetname string OPTIONS (),
+    tablename string,
+    total_records int64,
+    audit_date timestamp,
+    audit_by string OPTIONS(description='This column gives information about the respective employee') );
+===========================================================================================================
+	
+#sql command to insert values into audit_stage table
+INSERT INTO
+  `audit_usecase01.studentaud_stg`
+SELECT
+  "usecase01_stage" AS datasetname,
+  "studenttab_stg" AS tablename,
+  COUNT(*) AS total_records,
+  CURRENT_TIMESTAMP() AS audit_date,
+  "RAM_5878" AS audit_by
+FROM
+  `usecase-01.usecase01_stage.studenttab_stg`
+==============================================================================================
+	
+#sql command to insert values into audit_history table
+INSERT INTO
+  `audit_usecase01.studentaud_his`
+SELECT
+  "usecase01_history" AS datasetname,
+  "studenttab_his" AS tablename,
+  COUNT(*) AS total_records,
+  CURRENT_TIMESTAMP() AS audit_date,
+  "RAM_5878" AS audit_by
+FROM
+  `usecase-01.usecase01_history.studenttab_his`
+=================================================================================
+  
+#sql command to create dataset for views
+CREATE SCHEMA
+  auth_views_student
+=================================================================================
+
+#sql command to create views from history dataset
+create view 
+auth_views_student.view2 as
+select *
+from usecase01_history.studenttab_his
+where
+student_id is not null
+
+
+
+ 
